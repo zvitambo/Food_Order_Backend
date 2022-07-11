@@ -11,11 +11,12 @@ import {
   CreateCustomerInputs,
   UserLoginInputs,
   EditCustomerProfileInputs,
+  OrderInputs,
 } from "./../dto";
 import { RequestHandler } from "express";
 import {validate} from "class-validator";
 import { plainToClass } from "class-transformer";
-import { Customer } from '../models';
+import { Customer, Food, Order } from '../models';
 
 
 export const CustomerSignUp: RequestHandler = async (req, res, next) => {
@@ -47,6 +48,7 @@ export const CustomerSignUp: RequestHandler = async (req, res, next) => {
        otp_expiry: expiry,
        lat: 0,
        lng: 0,
+       orders: []
      });
 
 
@@ -210,3 +212,92 @@ export const EditCustomerProfile: RequestHandler = async (req, res, next) => {
    return res.status(400).json({ message: "Customer information not found" });
 
 };
+
+
+export const CreateOrder: RequestHandler = async(req, res, next) => {
+  //grab current logined user
+  const customer = req.user;
+
+  if (customer){
+
+    //create an orderid 
+    const orderId = `${Math.floor(Math.random()*89999) + 1000}`;
+
+    const profile = await Customer.findById(customer._id);
+    
+
+    //Grab order items from request [{_id: xx, units: xx}]
+    const cart = <[OrderInputs]>req.body;
+
+    let cartItems = Array();
+    
+    let netAmount = 0.0;
+
+    const foods =  await Food.find().where('_id').in(cart.map(item => item._id)).exec();
+    
+    foods.map(food => {
+        cart.map(({_id, unit}) => {
+          if (food._id = _id){
+            netAmount += food.price * unit;
+            cartItems.push({food, unit});
+          }
+        })
+    });
+    
+
+    //Create Order with Order descriptions
+    if (cartItems.length > 0 ) {
+
+      const currentOrder = await Order.create({
+        orderID: orderId,
+        items: cartItems,
+        totalAmount: netAmount,
+        orderDate: new Date(),
+        paidThrough: 'COD',
+        paymentResponse: '', 
+        orderStatus: 'Waiting',
+      });
+
+      if (currentOrder && profile) {
+        profile?.orders.push(currentOrder);
+        await profile.save();
+        return res.status(201).json(currentOrder);
+      }
+    }
+
+  }
+
+  return res.status(400).json({ message: "Customer information not found" });
+
+}; 
+
+export const GetOrders: RequestHandler = async(req, res, next) => {
+
+  const customer = req.user;
+
+  if (customer){
+
+    const profile = await Customer.findById(customer._id).populate("orders");
+
+    if(profile) return res.status(200).json(profile.orders);
+
+    return res.status(400).json({ message: "Customer information not found" });
+
+  }
+
+  return res.status(400).json({ message: "Customer information not found" });
+}; 
+
+export const GetOrderById: RequestHandler = async(req, res, next) => {
+
+  const orderId = req.params.id;
+ 
+  const order = await Order.findById(orderId).populate("items.food");
+
+  
+  if (order) return res.status(200).json(order);
+
+  return res.status(400).json({ message: "Order information not found" });
+
+
+}; 

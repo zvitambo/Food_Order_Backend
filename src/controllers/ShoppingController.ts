@@ -8,7 +8,8 @@ export const GetFoodAvailibilty : RequestHandler = async(req, res, next) => {
     const pincode = req.params.pincode;
 
     const result = await Vandor.find({ pincode: pincode, serviceAvailable: true})
-    .sort([["rating", "descending"]]).populate("foods");
+    //.sort([["rating", "descending"]])
+    .populate("foods");
 
     if (result.length > 0 ) return res.status(200).json(result);
     return res.status(400).json({message: "data not found"});
@@ -22,7 +23,7 @@ export const GetTopRestaurants: RequestHandler = async (req, res, next) => {
       pincode: pincode,
       serviceAvailable: true,
     })
-      .sort([["rating", "descending"]])
+     // .sort([["rating", "descending"]])
       .limit(1);
 
     if (result.length > 0) return res.status(200).json(result);

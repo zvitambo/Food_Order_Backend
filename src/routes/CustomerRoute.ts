@@ -6,6 +6,9 @@ import {
   RequestOtp,
   GetCustomerProfile,
   EditCustomerProfile,
+  CreateOrder,
+  GetOrders,
+  GetOrderById
 } from "./../controllers";
 import { Authenticate } from "./../middlewares";
 import express from "express";
@@ -28,6 +31,10 @@ router.get("/otp", RequestOtp);
 router.get("/profile", GetCustomerProfile);
 
 router.patch("/profile", EditCustomerProfile);
+
+router.post("/create-order", CreateOrder);
+router.get("/order", GetOrders);
+router.get("/order/:id", GetOrderById);
 
 
 export {router as CustomerRoute};

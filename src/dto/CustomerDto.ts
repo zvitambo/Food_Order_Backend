@@ -33,8 +33,17 @@ export class EditCustomerProfileInputs {
   address: string;
 }
 
+
+export class OrderInputs {
+  _id: string;
+  unit: number;
+}
+
 export interface CustomerPayload {
   _id: string;
   verified: boolean;
   email: string;
 } 
+
+
+ 
