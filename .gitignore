@@ -3,4 +3,7 @@
 # dependencies
 /node_modules
 
-/src/config
+config/
+
+
+
