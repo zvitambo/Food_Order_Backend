@@ -15,7 +15,6 @@ import express from "express";
 
 const router = express.Router();
 
-
 router.post("/signup", CustomerSignUp);
 
 router.post("/login", CustomerLogin);
