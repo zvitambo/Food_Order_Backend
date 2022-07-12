@@ -2,6 +2,7 @@
 import express from 'express';
 import App from './services/ExpressApp';
 import dbConnection from './services/Database';
+import { PORT } from './config'; 
 
 
 const StartServer = async() => {
@@ -12,8 +13,8 @@ const StartServer = async() => {
      
      await App(app);
 
-     app.listen(3000, () => {
-       console.log("Server started on port 3000");
+     app.listen(PORT, () => {
+       console.log(`Server started on port ${PORT}`);
      }); 
 }
 
