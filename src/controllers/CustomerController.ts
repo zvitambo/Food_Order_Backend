@@ -13,7 +13,7 @@ import {
   EditCustomerProfileInputs,
   OrderInputs,
 } from "./../dto";
-import { RequestHandler } from "express";
+import { RequestHandler, Router } from "express";
 import {validate} from "class-validator";
 import { plainToClass } from "class-transformer";
 import { Customer, Food, Order } from '../models';
@@ -214,6 +214,116 @@ export const EditCustomerProfile: RequestHandler = async (req, res, next) => {
 };
 
 
+//Cart
+
+export const AddToCart: RequestHandler = async(req, res, next) => {
+
+  const customer = req.user;
+
+  if (customer) 
+  {  
+
+    const profile = await Customer.findById(customer._id).populate("cart.food");
+
+    let cartItems = Array();
+
+    const { _id, unit } = <OrderInputs>req.body;
+
+    const food = await Food.findById(_id);
+
+    if (food)
+    {
+
+      if (profile !== null) {
+
+         // Check for cart items 
+        cartItems = profile.cart;
+
+        if (cartItems.length > 0 ) {
+
+          //check and update items 
+          let existingFoodItem = cartItems.filter( item => item.food._id.toString() === _id);
+
+          if (existingFoodItem.length > 0) {
+
+            const index = cartItems.indexOf(existingFoodItem[0]);
+
+            if (unit > 0)
+            {
+             cartItems[index] = { food, unit };
+            }
+            else
+            {
+              cartItems.splice(index, 1);
+
+            }
+          } else {
+            cartItems.push({ food, unit });
+          }
+        } else {
+
+          //add new itemn to cart
+          cartItems.push({ food, unit });
+        }
+
+        if (cartItems) {
+          profile.cart = cartItems as any;
+          const cartResult = await profile.save();
+          return res.status(201).json(cartResult.cart);
+        }
+        
+      }
+    }
+    
+    return res
+      .status(400)
+      .json({ message: "Failed to update customer profile" });
+  }
+
+  return res.status(400).json({message:"Customer information not found"});
+};
+
+export const GetCart: RequestHandler = async (req, res, next) => {
+
+  const customer = req.user;
+
+  if (customer) {
+
+    const profile = await Customer.findById(customer._id).populate("cart.food");
+
+    if (profile) return res.status(200).json(profile.cart);
+
+    return res.status(400).json({ message: "Customer profile not found" });
+    
+  }
+
+  return res.status(400).json({ message: "Customer information not found" });
+};
+
+export const DeleteCart: RequestHandler = async (req, res, next) => {
+
+   const customer = req.user;
+
+   if (customer) {
+     const profile = await Customer.findById(customer._id).populate(
+       "cart.food"
+     );
+
+     if (profile) 
+     {
+        profile.cart = [] as any;
+        const profileResult = await profile.save();
+        return res.status(200).json(profileResult);
+     }
+
+     return res.status(400).json({ message: "Customer profile not found" });
+   }
+
+   return res.status(400).json({ message: "Customer information not found" });
+};
+
+
+//Order
 export const CreateOrder: RequestHandler = async(req, res, next) => {
   //grab current logined user
   const customer = req.user;
@@ -227,17 +337,20 @@ export const CreateOrder: RequestHandler = async(req, res, next) => {
     
 
     //Grab order items from request [{_id: xx, units: xx}]
-    const cart = <[OrderInputs]>req.body;
+    const cart  = <[OrderInputs]>req.body;
 
     let cartItems = Array();
     
     let netAmount = 0.0;
+
+    let vendorId; 
 
     const foods =  await Food.find().where('_id').in(cart.map(item => item._id)).exec();
     
     foods.map(food => {
         cart.map(({_id, unit}) => {
           if (food._id = _id){
+            vendorId = food.vandorId;
             netAmount += food.price * unit;
             cartItems.push({food, unit});
           }
@@ -250,16 +363,23 @@ export const CreateOrder: RequestHandler = async(req, res, next) => {
 
       const currentOrder = await Order.create({
         orderID: orderId,
+        vandorId: vendorId,
         items: cartItems,
         totalAmount: netAmount,
         orderDate: new Date(),
-        paidThrough: 'COD',
-        paymentResponse: '', 
-        orderStatus: 'Waiting',
+        paidThrough: "COD",
+        paymentResponse: "",
+        orderStatus: "Waiting",
+        deliveryId: "",
+        appliedOffers: false,
+        offerId: null,
+        remarks: "",
+        readyTime: 45,
       });
 
       if (currentOrder && profile) {
-        profile?.orders.push(currentOrder);
+        profile.cart = [] as any;
+        profile.orders.push(currentOrder);
         await profile.save();
         return res.status(201).json(currentOrder);
       }

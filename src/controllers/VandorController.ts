@@ -6,7 +6,8 @@ import {
 } from "./../utility/PasswordUtility";
 import { RequestHandler } from "express";
 import { VandorLoginInputs, CreateFoodInputs } from "../dto/";
-import { Food } from '../models';
+import { Food, Order } from '../models';
+import { Request } from 'twilio/lib/webhooks/webhooks';
 
 export const VandorLogin: RequestHandler = async(req, res, next) => {
     const {email, password} = <VandorLoginInputs>req.body;
@@ -144,8 +145,76 @@ export const GetFood: RequestHandler = async (req, res, next) => {
     const foods = await Food.find({vandorId: user._id});
       if (foods) return res.status(200).json(foods)
   }
-  return res.json({ message: "failed to get food listing " });
+  return res.status(400).json({ message: "failed to get food listing " });
 }; 
 
 
 
+// Orders
+
+export const GetCurrentOrders: RequestHandler = async(req, res, next) => {
+
+  const vendor = req.user;
+
+  if (vendor) {
+    const orders = await Order.find({ vandorId: vendor._id }).populate(
+      "items.food"
+    );
+
+    if (orders) return res.status(200).json(orders);
+
+    return res.status(400).json({ message: "No orders available" });
+
+  }
+
+  return res.status(400).json({ message: "failed to find vendor profile " });
+
+}; 
+
+export const GetOrderDetails: RequestHandler = async (req, res, next) => {
+
+   const orderId  = req.params.id;
+
+   if (orderId) {
+     const order = await Order.findById(orderId).populate("items.food");
+
+     if (order) return res.status(200).json(order);
+
+     return res.status(400).json({ message: "Order not found" });
+   }
+
+   return res.status(400).json({ message: "Invalid order request" });
+}; 
+
+export const ProcessOrder: RequestHandler = async (req, res, next) => {
+
+
+   const orderId = req.params.id;
+
+   const { remarks, status, time } = req.body;
+
+   if (orderId) {
+     const order = await Order.findById(orderId).populate("items.food"); 
+
+     if (order)
+     {
+      order.orderStatus = status;
+      order.remarks = remarks;
+      if (time) order.readyTime = time;
+
+      const orderResult = await order.save();
+      if (orderResult) return res.status(200).json(orderResult);
+     }
+
+     return res.status(400).json({ message: "Order not found" });
+   }
+
+   return res.status(400).json({ message: "Invalid order request" });
+}; 
+
+
+export const GetOffers: RequestHandler = (req, res, next) => {};
+
+export const AddOffer: RequestHandler = (req, res, next) => {};
+
+export const EditOffer: RequestHandler = (req, res, next) => {};

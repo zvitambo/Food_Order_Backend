@@ -5,6 +5,12 @@ import {
   UpdateVandorProfile,
   UpdateVandorService,
   updateVandorCoverImage,
+  GetCurrentOrders,
+  GetOrderDetails,
+  ProcessOrder,
+  EditOffer,
+  AddOffer,
+  GetOffers,
 } from "./../controllers";
 import express, { Request, Response, NextFunction } from "express";
 import { VandorLogin } from '../controllers';
@@ -38,6 +44,19 @@ router.patch("/service", Authenticate, UpdateVandorService);
 router.post("/food", images, Authenticate, AddFood);
 router.get("/foods", Authenticate, GetFood);
 
+
+///Orders
+
+router.get("/orders", GetCurrentOrders);
+router.put("/order/:id/process", ProcessOrder);;
+router.get("/order/:id", GetOrderDetails);
+
+
+//Offers
+
+router.post("offer", AddOffer);
+router.put("offer/:id", EditOffer);
+router.get("offers", GetOffers);
 
 
 router.get("/", (req: Request, res: Response, next: NextFunction) => {

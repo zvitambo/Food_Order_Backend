@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EditCustomerProfile = exports.GetCustomerProfile = exports.RequestOtp = exports.CustomerVerify = exports.CustomerLogin = exports.CustomerSignUp = void 0;
+exports.GetOrderById = exports.GetOrders = exports.CreateOrder = exports.DeleteCart = exports.GetCart = exports.AddToCart = exports.EditCustomerProfile = exports.GetCustomerProfile = exports.RequestOtp = exports.CustomerVerify = exports.CustomerLogin = exports.CustomerSignUp = void 0;
 const utility_1 = require("./../utility");
 const dto_1 = require("./../dto");
 const class_validator_1 = require("class-validator");
@@ -40,6 +40,7 @@ const CustomerSignUp = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         otp_expiry: expiry,
         lat: 0,
         lng: 0,
+        orders: []
     });
     if (result) {
         //send the otp to customer
@@ -162,4 +163,136 @@ const EditCustomerProfile = (req, res, next) => __awaiter(void 0, void 0, void 0
     return res.status(400).json({ message: "Customer information not found" });
 });
 exports.EditCustomerProfile = EditCustomerProfile;
+//Cart
+const AddToCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const customer = req.user;
+    if (customer) {
+        const profile = yield models_1.Customer.findById(customer._id).populate("cart.food");
+        let cartItems = Array();
+        const { _id, unit } = req.body;
+        const food = yield models_1.Food.findById(_id);
+        if (food) {
+            if (profile !== null) {
+                // Check for cart items 
+                cartItems = profile.cart;
+                if (cartItems.length > 0) {
+                    //check and update items 
+                    let existingFoodItem = cartItems.filter(item => item.food._id.toString() === _id);
+                    if (existingFoodItem.length > 0) {
+                        const index = cartItems.indexOf(existingFoodItem[0]);
+                        if (unit > 0) {
+                            cartItems[index] = { food, unit };
+                        }
+                        else {
+                            cartItems.splice(index, 1);
+                        }
+                    }
+                    else {
+                        cartItems.push({ food, unit });
+                    }
+                }
+                else {
+                    //add new itemn to cart
+                    cartItems.push({ food, unit });
+                }
+                if (cartItems) {
+                    profile.cart = cartItems;
+                    const cartResult = yield profile.save();
+                    return res.status(201).json(cartResult.cart);
+                }
+            }
+        }
+        return res
+            .status(400)
+            .json({ message: "Failed to update customer profile" });
+    }
+    return res.status(400).json({ message: "Customer information not found" });
+});
+exports.AddToCart = AddToCart;
+const GetCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const customer = req.user;
+    if (customer) {
+        const profile = yield models_1.Customer.findById(customer._id).populate("cart.food");
+        if (profile)
+            return res.status(200).json(profile.cart);
+        return res.status(400).json({ message: "Customer profile not found" });
+    }
+    return res.status(400).json({ message: "Customer information not found" });
+});
+exports.GetCart = GetCart;
+const DeleteCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const customer = req.user;
+    if (customer) {
+        const profile = yield models_1.Customer.findById(customer._id).populate("cart.food");
+        if (profile) {
+            profile.cart = [];
+            const profileResult = yield profile.save();
+            return res.status(200).json(profileResult);
+        }
+        return res.status(400).json({ message: "Customer profile not found" });
+    }
+    return res.status(400).json({ message: "Customer information not found" });
+});
+exports.DeleteCart = DeleteCart;
+//Order
+const CreateOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    //grab current logined user
+    const customer = req.user;
+    if (customer) {
+        //create an orderid 
+        const orderId = `${Math.floor(Math.random() * 89999) + 1000}`;
+        const profile = yield models_1.Customer.findById(customer._id);
+        //Grab order items from request [{_id: xx, units: xx}]
+        const cart = req.body;
+        let cartItems = Array();
+        let netAmount = 0.0;
+        const foods = yield models_1.Food.find().where('_id').in(cart.map(item => item._id)).exec();
+        foods.map(food => {
+            cart.map(({ _id, unit }) => {
+                if (food._id = _id) {
+                    netAmount += food.price * unit;
+                    cartItems.push({ food, unit });
+                }
+            });
+        });
+        //Create Order with Order descriptions
+        if (cartItems.length > 0) {
+            const currentOrder = yield models_1.Order.create({
+                orderID: orderId,
+                items: cartItems,
+                totalAmount: netAmount,
+                orderDate: new Date(),
+                paidThrough: 'COD',
+                paymentResponse: '',
+                orderStatus: 'Waiting',
+            });
+            if (currentOrder && profile) {
+                profile === null || profile === void 0 ? void 0 : profile.orders.push(currentOrder);
+                yield profile.save();
+                return res.status(201).json(currentOrder);
+            }
+        }
+    }
+    return res.status(400).json({ message: "Customer information not found" });
+});
+exports.CreateOrder = CreateOrder;
+const GetOrders = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const customer = req.user;
+    if (customer) {
+        const profile = yield models_1.Customer.findById(customer._id).populate("orders");
+        if (profile)
+            return res.status(200).json(profile.orders);
+        return res.status(400).json({ message: "Customer information not found" });
+    }
+    return res.status(400).json({ message: "Customer information not found" });
+});
+exports.GetOrders = GetOrders;
+const GetOrderById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const orderId = req.params.id;
+    const order = yield models_1.Order.findById(orderId).populate("items.food");
+    if (order)
+        return res.status(200).json(order);
+    return res.status(400).json({ message: "Order information not found" });
+});
+exports.GetOrderById = GetOrderById;
 //# sourceMappingURL=CustomerController.js.map

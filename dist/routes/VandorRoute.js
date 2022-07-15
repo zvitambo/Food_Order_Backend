@@ -29,6 +29,11 @@ router.patch("/coverimage", images, middlewares_1.Authenticate, controllers_2.up
 router.patch("/service", middlewares_1.Authenticate, controllers_2.UpdateVandorService);
 router.post("/food", images, middlewares_1.Authenticate, controllers_1.AddFood);
 router.get("/foods", middlewares_1.Authenticate, controllers_1.GetFood);
+///Orders
+router.get("/orders");
+router.put("/order/:id/process");
+;
+router.get("/order/:id");
 router.get("/", (req, res, next) => {
     return res.json("Hello VandorRouter");
 });

@@ -8,7 +8,10 @@ import {
   EditCustomerProfile,
   CreateOrder,
   GetOrders,
-  GetOrderById
+  GetOrderById,
+  AddToCart,
+  GetCart,
+  DeleteCart  
 } from "./../controllers";
 import { Authenticate } from "./../middlewares";
 import express from "express";
@@ -31,9 +34,29 @@ router.get("/profile", GetCustomerProfile);
 
 router.patch("/profile", EditCustomerProfile);
 
+
+
+//Cart
+router.post('/cart', AddToCart);
+router.get("/cart", GetCart);
+router.delete("/cart", DeleteCart);
+
+
+
+
+
+//Payment
+
+
+
+
+
+//Order
+
 router.post("/create-order", CreateOrder);
 router.get("/order", GetOrders);
 router.get("/order/:id", GetOrderById);
+
 
 
 export {router as CustomerRoute};

@@ -14,7 +14,8 @@ const models_1 = require("../models");
 const GetFoodAvailibilty = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const pincode = req.params.pincode;
     const result = yield models_1.Vandor.find({ pincode: pincode, serviceAvailable: true })
-        .sort([["rating", "descending"]]).populate("foods");
+        //.sort([["rating", "descending"]])
+        .populate("foods");
     if (result.length > 0)
         return res.status(200).json(result);
     return res.status(400).json({ message: "data not found" });
@@ -26,7 +27,7 @@ const GetTopRestaurants = (req, res, next) => __awaiter(void 0, void 0, void 0, 
         pincode: pincode,
         serviceAvailable: true,
     })
-        .sort([["rating", "descending"]])
+        // .sort([["rating", "descending"]])
         .limit(1);
     if (result.length > 0)
         return res.status(200).json(result);
