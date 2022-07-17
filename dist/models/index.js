@@ -18,4 +18,5 @@ __exportStar(require("./Vandor"), exports);
 __exportStar(require("./Food"), exports);
 __exportStar(require("./Customer"), exports);
 __exportStar(require("./Order"), exports);
+__exportStar(require("./Offer"), exports);
 //# sourceMappingURL=index.js.map

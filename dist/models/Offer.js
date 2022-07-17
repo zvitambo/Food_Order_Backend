@@ -23,27 +23,23 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Order = void 0;
+exports.Offer = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-const OrderSchema = new mongoose_1.default.Schema({
-    orderID: { type: String, required: true },
-    vandorId: { type: String, required: true },
-    items: [
-        {
-            food: { type: mongoose_1.Schema.Types.ObjectId, ref: "Food", required: true },
-            unit: { type: String, required: true },
-        },
-    ],
-    totalAmount: { type: String, required: true },
-    orderDate: { type: String, required: true },
-    paidThrough: { type: String },
-    paymentResponse: { type: String },
-    orderStatus: { type: String },
-    deliveryId: { type: String },
-    appliedOffers: { type: Boolean },
-    offerId: { type: String },
-    remarks: { type: String },
-    readyTime: { type: Number },
+const OfferSchema = new mongoose_1.default.Schema({
+    offerType: { type: String, required: true },
+    vandors: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "vandor" }],
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    minValue: { type: Number, required: true },
+    offerAmount: { type: Number, required: true },
+    startValidity: Date,
+    endValidity: Date,
+    promoCode: { type: String, required: true },
+    promoType: { type: String, required: true },
+    bank: [{ type: String }],
+    bins: [{ type: Number }],
+    pinCode: { type: String, required: true },
+    isActive: Boolean,
 }, {
     toJSON: {
         transform(doc, ret) {
@@ -54,6 +50,6 @@ const OrderSchema = new mongoose_1.default.Schema({
     },
     timestamps: true,
 });
-const Order = mongoose_1.default.model("Order", OrderSchema);
-exports.Order = Order;
-//# sourceMappingURL=Order.js.map
+const Offer = mongoose_1.default.model("Offer", OfferSchema);
+exports.Offer = Offer;
+//# sourceMappingURL=Offer.js.map

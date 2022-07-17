@@ -15,7 +15,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const ExpressApp_1 = __importDefault(require("./services/ExpressApp"));
 const Database_1 = __importDefault(require("./services/Database"));
+const dotenv = require("dotenv");
+dotenv.config();
 const config_1 = require("./config");
+console.log("PORT - ", config_1.PORT);
 const StartServer = () => __awaiter(void 0, void 0, void 0, function* () {
     const app = (0, express_1.default)();
     yield (0, Database_1.default)();

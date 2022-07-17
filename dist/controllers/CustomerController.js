@@ -246,10 +246,12 @@ const CreateOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         const cart = req.body;
         let cartItems = Array();
         let netAmount = 0.0;
+        let vendorId;
         const foods = yield models_1.Food.find().where('_id').in(cart.map(item => item._id)).exec();
         foods.map(food => {
             cart.map(({ _id, unit }) => {
                 if (food._id = _id) {
+                    vendorId = food.vandorId;
                     netAmount += food.price * unit;
                     cartItems.push({ food, unit });
                 }
@@ -259,15 +261,22 @@ const CreateOrder = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
         if (cartItems.length > 0) {
             const currentOrder = yield models_1.Order.create({
                 orderID: orderId,
+                vandorId: vendorId,
                 items: cartItems,
                 totalAmount: netAmount,
                 orderDate: new Date(),
-                paidThrough: 'COD',
-                paymentResponse: '',
-                orderStatus: 'Waiting',
+                paidThrough: "COD",
+                paymentResponse: "",
+                orderStatus: "Waiting",
+                deliveryId: "",
+                appliedOffers: false,
+                offerId: null,
+                remarks: "",
+                readyTime: 45,
             });
             if (currentOrder && profile) {
-                profile === null || profile === void 0 ? void 0 : profile.orders.push(currentOrder);
+                profile.cart = [];
+                profile.orders.push(currentOrder);
                 yield profile.save();
                 return res.status(201).json(currentOrder);
             }

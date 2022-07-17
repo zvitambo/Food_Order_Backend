@@ -30,10 +30,14 @@ router.patch("/service", middlewares_1.Authenticate, controllers_2.UpdateVandorS
 router.post("/food", images, middlewares_1.Authenticate, controllers_1.AddFood);
 router.get("/foods", middlewares_1.Authenticate, controllers_1.GetFood);
 ///Orders
-router.get("/orders");
-router.put("/order/:id/process");
+router.get("/orders", controllers_2.GetCurrentOrders);
+router.put("/order/:id/process", controllers_2.ProcessOrder);
 ;
-router.get("/order/:id");
+router.get("/order/:id", controllers_2.GetOrderDetails);
+//Offers
+router.post("offer", controllers_2.AddOffer);
+router.put("offer/:id", controllers_2.EditOffer);
+router.get("offers", controllers_2.GetOffers);
 router.get("/", (req, res, next) => {
     return res.json("Hello VandorRouter");
 });
