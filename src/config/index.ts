@@ -1,5 +1,10 @@
-export const MONGO_URI = "mongodb://localhost/online_food_delivery";
-//mongodb+srv://tambo:<Nataliee_2412>@cluster0.m2lbb.mongodb.net/<online_food_delivery>?retryWrites=true&w=majority
-export const APP_SECRET = "my_secret-code_here";
+
+const dotenv = require("dotenv");
+dotenv.config();
+
+
+export const MONGO_URI = process.env.MONGO_URI || "";
+export const APP_SECRET = process.env.APP_SECRET || "";
+
 
 export const PORT = process.env.PORT || 3000;
