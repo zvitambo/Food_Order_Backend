@@ -1,3 +1,5 @@
+import { DeliveryUserLogin } from './DeliveryController';
+import { TransactionDoc } from './../models/Transaction';
 
 import {
   GenerateSalt,
@@ -12,11 +14,13 @@ import {
   UserLoginInputs,
   EditCustomerProfileInputs,
   OrderInputs,
+  CartItem
 } from "./../dto";
 import { RequestHandler, Router } from "express";
 import {validate} from "class-validator";
 import { plainToClass } from "class-transformer";
-import { Customer, Food, Order } from '../models';
+import { Customer, Food, Offer, Order, Vandor, DeliveryUser } from '../models';
+import { Transaction } from "../models/Transaction";
 
 
 export const CustomerSignUp: RequestHandler = async (req, res, next) => {
@@ -227,7 +231,7 @@ export const AddToCart: RequestHandler = async(req, res, next) => {
 
     let cartItems = Array();
 
-    const { _id, unit } = <OrderInputs>req.body;
+    const { _id, unit } = <CartItem>req.body;
 
     const food = await Food.findById(_id);
 
@@ -322,13 +326,55 @@ export const DeleteCart: RequestHandler = async (req, res, next) => {
    return res.status(400).json({ message: "Customer information not found" });
 };
 
-
 //Order
+
+const assignOrderForDelivery = async(orderId: string, vendorId: string) => {
+   const vendor = await Vandor.findById(vendorId);
+
+   if (vendor) {
+
+    const areaCode = vendor.pincode;
+    const vendorLat = vendor.lat;
+    const vendorng = vendor.lng;
+
+    const deliveryUsers = await DeliveryUser.find({pincode: areaCode, verified: true, isAvailable: true});
+    if (deliveryUsers){
+       const currentOrder = await Order.findById(orderId);
+
+       if (currentOrder){
+          currentOrder.deliveryId = deliveryUsers[0]._id;
+          await currentOrder.save();
+       }
+    }
+ 
+   }
+  }
+
+const validateTransaction = async (transactionId: string) => {
+
+  const currentTransaction = await Transaction.findById(transactionId);
+
+  if (currentTransaction) {
+    if (currentTransaction.status.toLowerCase() !== "failed")
+      return { status: true, currentTransaction: currentTransaction };
+    return { status: false, currentTransaction: currentTransaction };
+  }
+  return { status: false, currentTransaction };
+}; 
+
+
+
 export const CreateOrder: RequestHandler = async(req, res, next) => {
   //grab current logined user
   const customer = req.user;
+  const {amount, items, transactionId}= <OrderInputs>req.body;
 
   if (customer){
+
+    const { status, currentTransaction } =
+      await validateTransaction(transactionId);
+
+    if (!status) return res.status(400).json({message: "Error creating order"});
 
     //create an orderid 
     const orderId = `${Math.floor(Math.random()*89999) + 1000}`;
@@ -337,24 +383,27 @@ export const CreateOrder: RequestHandler = async(req, res, next) => {
     
 
     //Grab order items from request [{_id: xx, units: xx}]
-    const cart  = <[OrderInputs]>req.body;
+    //const cart  = <[CartItem]>req.body;
 
     let cartItems = Array();
     
     let netAmount = 0.0;
 
-    let vendorId; 
+    let vendorId = ""; 
 
-    const foods =  await Food.find().where('_id').in(cart.map(item => item._id)).exec();
+    const foods = await Food.find()
+      .where("_id")
+      .in(items.map((item) => item._id))
+      .exec();
     
     foods.map(food => {
-        cart.map(({_id, unit}) => {
-          if (food._id = _id){
+        items.map(({ _id, unit }) => {
+          if ((food._id = _id)) {
             vendorId = food.vandorId;
             netAmount += food.price * unit;
-            cartItems.push({food, unit});
+            cartItems.push({ food, unit });
           }
-        })
+        });
     });
     
 
@@ -366,16 +415,26 @@ export const CreateOrder: RequestHandler = async(req, res, next) => {
         vandorId: vendorId,
         items: cartItems,
         totalAmount: netAmount,
+        paidAmount: amount,
         orderDate: new Date(),
-        paidThrough: "COD",
-        paymentResponse: "",
+        // paidThrough: "COD",
+        // paymentResponse: "",
         orderStatus: "Waiting",
-        deliveryId: "",
-        appliedOffers: false,
+        // deliveryId: "",
+        // appliedOffers: false,
         offerId: null,
         remarks: "",
         readyTime: 45,
       });
+
+       if (currentTransaction) {
+          currentTransaction.vandorId = vendorId;
+          currentTransaction.orderId = orderId;
+          currentTransaction.status = "CONFIRMED";
+          await currentTransaction.save();
+        }
+        await assignOrderForDelivery(currentOrder._id, vendorId); 
+     
 
       if (currentOrder && profile) {
         profile.cart = [] as any;
@@ -421,3 +480,65 @@ export const GetOrderById: RequestHandler = async(req, res, next) => {
 
 
 }; 
+
+
+//Offers 
+
+export const VerifyOffer: RequestHandler = async(req, res, next) => {
+  const user = req.user;
+  const offerId = req.params.id;
+
+  if (user)
+  {
+    const appliedOffer = await Offer.findById(user._id);
+    
+    if(appliedOffer){
+
+      if (appliedOffer.promoType === "USER")
+      {
+
+      }
+      else 
+      {
+        if (appliedOffer.isActive) 
+        return res.status(200).json({ message: "offer is valid", offer: appliedOffer });
+      }
+    }
+    return res.status(400).json({ message: "offer not found" });
+
+
+  }
+
+  return res.status(400).json({message: "Unable to verify the offer"});
+};
+
+
+//Payment
+
+
+export const CreatePayment: RequestHandler = async(req, res, next) => {
+
+  const customer = req.user;
+  const {amount, paymentMode, offerId} = req.body;
+  let payableAmount = Number(amount);
+  if (customer) {
+    if (offerId) {
+      const appliedOffer = await Offer.findById(offerId);
+      if (appliedOffer?.isActive)
+        payableAmount = payableAmount - appliedOffer.offerAmount;
+    }
+
+    const transaction = await Transaction.create({
+      customer: customer._id,
+      vandorId: "",
+      orderId: "",
+      orderValue: payableAmount,
+      offerUsed: offerId || "NA",
+      status: "OPEN", // Failed // Success
+      paymentMode: paymentMode,
+      paymentResponse: "Payment is Cash on Delivery",
+    });
+    return res.status(201).json(transaction);
+  }
+  return res.status(400).json({message: "User not found"});
+};

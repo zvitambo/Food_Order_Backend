@@ -1,4 +1,11 @@
-import { SearchFoods, RestuarantById, GetFoodsInThirtyMins, GetTopRestaurants, GetFoodAvailibilty } from './../controllers/ShoppingController';
+import {
+  SearchFoods,
+  RestuarantById,
+  GetFoodsInThirtyMins,
+  GetTopRestaurants,
+  GetFoodAvailibilty,
+  GetAvailableOffers,
+} from "./../controllers/ShoppingController";
 import express from "express";
 
 
@@ -7,6 +14,7 @@ router.get("/:pincode", GetFoodAvailibilty);
 router.get("/top-restaurants/:pincode", GetTopRestaurants);
 router.get("/food-in-30-min/:pincode", GetFoodsInThirtyMins);
 router.get("/searchfoods/:pincode", SearchFoods);
+router.get("/offers/:pincode", GetAvailableOffers);
 router.get("/restaurant/:id", RestuarantById);
 
 

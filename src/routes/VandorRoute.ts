@@ -47,16 +47,16 @@ router.get("/foods", Authenticate, GetFood);
 
 ///Orders
 
-router.get("/orders", GetCurrentOrders);
-router.put("/order/:id/process", ProcessOrder);;
-router.get("/order/:id", GetOrderDetails);
+router.get("/orders", Authenticate, GetCurrentOrders);
+router.put("/order/:id/process", Authenticate, ProcessOrder);;
+router.get("/order/:id", Authenticate, GetOrderDetails);
 
 
 //Offers
 
-router.post("offer", AddOffer);
-router.put("offer/:id", EditOffer);
-router.get("offers", GetOffers);
+router.post("offer", Authenticate, AddOffer);
+router.put("offer/:id", Authenticate, EditOffer);
+router.get("offers", Authenticate, GetOffers);
 
 
 router.get("/", (req: Request, res: Response, next: NextFunction) => {

@@ -5,13 +5,14 @@ export interface OrderDoc extends Document {
   vandorId: string;
   items: [any]; // [{food , unit: 5}]
   totalAmount: number;
+  paidAmount: number;
   orderDate: Date;
-  paidThrough: string; //credit card, cash etc
-  paymentResponse: string; // {status: ok, response: some bank response}
+  // paidThrough: string; //credit card, cash etc
+  // paymentResponse: string; // {status: ok, response: some bank response}
   orderStatus: string; // cancelled, delivered
   deliveryId: string;
-  appliedOffers: boolean;
-  offerId: string;
+  // appliedOffers: boolean;
+  // offerId: string;
   remarks: string;
   readyTime: number;
 }
@@ -27,13 +28,14 @@ const OrderSchema = new mongoose.Schema(
       },
     ],
     totalAmount: { type: String, required: true },
+    paidAmount: { type: String, required: true },
     orderDate: { type: String, required: true },
-    paidThrough: { type: String },
-    paymentResponse: { type: String },
+    // paidThrough: { type: String },
+    // paymentResponse: { type: String },
     orderStatus: { type: String },
     deliveryId: { type: String },
-    appliedOffers: { type: Boolean },
-    offerId: { type: String },
+    // appliedOffers: { type: Boolean },
+    // offerId: { type: String },
     remarks: { type: String },
     readyTime: { type: Number },
   },

@@ -1,3 +1,4 @@
+import { CreateOfferInput } from './../dto/VandorDto';
 import { EditVandorInputs } from './../dto';
 import { FindVandor } from './AdminController';
 import {
@@ -6,7 +7,7 @@ import {
 } from "./../utility/PasswordUtility";
 import { RequestHandler } from "express";
 import { VandorLoginInputs, CreateFoodInputs } from "../dto/";
-import { Food, Order } from '../models';
+import { Food, Order, Offer } from '../models';
 import { Request } from 'twilio/lib/webhooks/webhooks';
 
 export const VandorLogin: RequestHandler = async(req, res, next) => {
@@ -61,6 +62,7 @@ export const UpdateVandorProfile: RequestHandler = async (req, res, next) => {
 
 export const updateVandorCoverImage: RequestHandler = async (req, res, next) => {
    const user = req.user;
+
    if (user) {
      
      const vandor = await FindVandor(user._id);
@@ -81,10 +83,15 @@ export const updateVandorCoverImage: RequestHandler = async (req, res, next) => 
 
 export const UpdateVandorService: RequestHandler = async (req, res, next) => {
   const user = req.user;
+     const { lat, lng } = req.body;
   if (user) {
     const existingVandor = await FindVandor(user._id);
     if (existingVandor) {
       existingVandor.serviceAvailable = !existingVandor.serviceAvailable;
+      if (lat && lng){
+        existingVandor.lat = lat;
+        existingVandor.lng = lng;
+      }
       const updatedVandor = await existingVandor.save();
       return res.json(updatedVandor);
     }
@@ -213,8 +220,133 @@ export const ProcessOrder: RequestHandler = async (req, res, next) => {
 }; 
 
 
-export const GetOffers: RequestHandler = (req, res, next) => {};
+export const GetOffers: RequestHandler = async(req, res, next) => {
+    const user = req.user;
 
-export const AddOffer: RequestHandler = (req, res, next) => {};
+    if (user) {
 
-export const EditOffer: RequestHandler = (req, res, next) => {};
+      let currentOffers = Array();
+      
+
+      const offers = await Offer.find().populate("vandors");
+
+      if (offers) {
+
+        offers.map( offer => {
+          
+          if (offer.vandors){
+
+            offer.vandors.map( vandor => {
+
+              if (vandor._id.toString() === user._id) currentOffers.push(offer);
+
+            });
+          }
+
+          if (offer.offerType === "GENERIC") currentOffers.push(offer);
+
+        });
+
+
+        return res.status(200).json(currentOffers);
+
+      }
+      
+      return res.status(400).json({ message: "Failed to get offers" });
+
+    }
+
+    return res.status(400).json({ message: "Failed to get offers" });
+
+};
+
+export const AddOffer: RequestHandler = async(req, res, next) => {
+
+  const user = req.user;
+
+    if (user){
+    const { offerType,  title,  description,  minValue,  offerAmount,  startValidity,
+     endValidity,  promoCode,  promoType,  bank,  bins,  pinCode,  isActive } = <CreateOfferInput>req.body;
+
+    const vandor = await FindVandor(user._id);
+    
+        if(vandor)
+        {
+
+          const offer = await Offer.create({
+            offerType,
+            vandors: [vandor],
+            title,
+            description,
+            minValue,
+            offerAmount,
+            startValidity,
+            endValidity,
+            promoCode,
+            promoType,
+            bank,
+            bins,
+            pinCode,
+            isActive,
+          });
+
+         return res.status(201).json(offer);
+
+        }
+      return res.status(400).json({ message: "Failed to add offer" });
+    }
+  return res.status(400).json({message: "Failed to add offer"});
+};
+
+export const EditOffer: RequestHandler = async(req, res, next) => {
+
+    const user = req.user;
+    const offerId = req.params.id;
+
+    if (user) {
+      const {
+        offerType,
+        title,
+        description,
+        minValue,
+        offerAmount,
+        startValidity,
+        endValidity,
+        promoCode,
+        promoType,
+        bank,
+        bins,
+        pinCode,
+        isActive,
+      } = <CreateOfferInput>req.body;
+
+      const currentOffer = await Offer.findById(offerId);
+
+      if (currentOffer) {
+        const vandor = await FindVandor(user._id);
+          if (vandor) {
+            
+              currentOffer.offerType = offerType;
+              currentOffer.title = title;
+              currentOffer.description = description;
+              currentOffer.minValue = minValue;
+              currentOffer.offerAmount = offerAmount;
+              currentOffer.startValidity = startValidity;
+              currentOffer.endValidity =endValidity;
+              currentOffer.promoCode = promoCode;
+              currentOffer.promoType = promoType;
+              currentOffer.bank = bank;
+              currentOffer.bins = bins;
+              currentOffer.pinCode = pinCode;
+              currentOffer.isActive = isActive;
+           
+            const results = await currentOffer.save();
+            return res.status(200).json(results);
+          }
+          return res.status(400).json({ message: "Failed to update offer" });
+      }     
+      return res.status(400).json({ message: "Failed to update offer" });
+    }
+    return res.status(400).json({ message: "Failed to update offer" });
+
+};
